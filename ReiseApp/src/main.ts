@@ -1,12 +1,31 @@
 interface NavItem {
   name: string;
   path: string;
+  subItems?: NavItem[]
 }
 
 const navItems: NavItem[] = [
   { name: 'Hjem', path: '/' },
-  { name: 'Om', path: '/om' },
+  { name: 'Om oss', path: '/om' },
   { name: 'Kontakt', path: '/kontakt' },
+  {
+    name: 'Reise',
+    path: '/fly',
+    subItems: [
+      { name: 'Hotell', path: '/hotell' },
+      { name: 'Leiebil', path: '/leiebil' },
+      { name: 'Pakkereiser', path: '/pakkereiser' },
+      { name: 'Reisetips', path: '/reisetips' },
+    ],
+  },
+  {
+    name: 'Min Konto',
+    path: '/min-konto',
+    subItems: [
+      { name: 'Logg inn', path: '/logg-inn' },
+      { name: 'Registrer', path: '/registrer' }
+    ],
+  },
 ];
 
 function setupNavbar(): void {
@@ -15,25 +34,52 @@ function setupNavbar(): void {
   let isOpen: boolean = false;
 
   navList.innerHTML = navItems
-    .map(
-      (item) =>
-        `<li><a href="${item.path}" class="nav-link ${
-          window.location.pathname === item.path ? 'active' : ''
-        }">${item.name}</a></li>`
-    )
-    .join('');
+  .map((item, index) => {
+    const isActive = window.location.pathname === item.path;
+    const hasSubItems = item.subItems && item.subItems.length > 0;
+    const subMenuHtml = hasSubItems
+      ? `<ul class="dropdown hidden" id="dropdown-${index}">${item.subItems!.map(
+          (subItem) =>
+            `<li><a href="${subItem.path}" class="nav-link ${
+              window.location.pathname === subItem.path ? 'active' : ''
+            }">${subItem.name}</a></li>`
+        ).join('')}</ul>`
+      : '';
+    return `<li><a href="${item.path}" class="nav-link ${isActive ? 'active' : ''} ${
+      hasSubItems ? 'dropdown-toggle' : ''
+    }" ${hasSubItems ? `data-dropdown="dropdown-${index}"` : ''}>${item.name}</a>${subMenuHtml}</li>`;
+  })
+  .join('');
 
   function toggleMenu(): void {
-    isOpen = !isOpen;
-    navList.classList.toggle('hidden', !isOpen);
-    toggleButton.textContent = isOpen ? '✕' : '☰';
-  }
+  isOpen = !isOpen;
+  navList.classList.toggle('hidden', !isOpen);
+  toggleButton.textContent = isOpen ? '✕' : '☰';
+  document.querySelectorAll('.dropdown').forEach((dropdown) => dropdown.classList.add('hidden'));
+}
 
-  toggleButton.addEventListener('click', toggleMenu);
-  navList.querySelectorAll('.nav-link').forEach((link) => {
-    link.addEventListener('click', () => {
-      if (isOpen) toggleMenu();
-    });
+toggleButton.addEventListener('click', toggleMenu);
+
+navList.querySelectorAll('.dropdown-toggle').forEach((toggle) => {
+  toggle.addEventListener('click', (e) => {
+    e.preventDefault();
+    const dropdownId = toggle.getAttribute('data-dropdown');
+    if (dropdownId) {
+      const dropdown = document.getElementById(dropdownId) as HTMLUListElement | null;
+      if (dropdown) {
+        dropdown.classList.toggle('hidden');
+        document.querySelectorAll('.dropdown').forEach((d) => {
+          if (d !== dropdown) d.classList.add('hidden');
+        });
+      }
+    }
   });
+});
+
+navList.querySelectorAll('.nav-link:not(.dropdown-toggle)').forEach((link) => {
+  link.addEventListener('click', () => {
+    if (isOpen) toggleMenu();
+  });
+});
 }
 document.addEventListener('DOMContentLoaded', setupNavbar);
